@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+jinja2
+python-multipart
+psycopg2-binary
+requests
+passlib[argon2]
+python-dotenv
+pandas

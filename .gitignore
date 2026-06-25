@@ -1,0 +1,22 @@
+.env
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env.local
+
+# Датасеты (гигабайты — скачиваются отдельно)
+ml-32m/
+title.basics.tsv/
+title.crew.tsv/
+title.ratings.tsv/
+*.tsv
+*.csv
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+.DS_Store

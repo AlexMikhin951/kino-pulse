@@ -1,0 +1,18 @@
+{% for m in movies %}
+<div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+    <div class="card h-100 glass-card border-0 overflow-hidden" style="cursor: pointer;" onclick="location.href='/movie/{{ m.movie_id }}'">
+        <div style="position: relative; overflow: hidden; padding-top: 150%;">
+            <img src="{{ m.poster_url }}" class="position-absolute top-0 w-100 h-100" style="object-fit: cover; transition: transform 0.4s;" alt="{{ m.title }}" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
+            <div class="position-absolute top-0 end-0 p-2">
+                <span class="badge rounded-pill" style="background: rgba(0,0,0,0.8); border: 1px solid #4facfe; font-size: 0.85rem;">
+                    ★ {{ m.rating_avg|round(1) }}
+                </span>
+            </div>
+        </div>
+        <div class="card-body p-3 text-center">
+            <h6 class="card-title text-truncate mb-1" style="color: #ffffff; font-family: 'Montserrat', sans-serif; font-weight: 700; text-shadow: 1px 1px 3px rgba(0,0,0,0.8);">{{ m.title }}</h6>
+            <small style="color: #94a3b8; font-weight: 500;">{{ m.release_year }}</small>
+        </div>
+    </div>
+</div>
+{% endfor %}

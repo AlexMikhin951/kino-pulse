@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mb-4">
+    <h2 class="fw-bold mb-4" style="text-shadow: 0 0 10px rgba(255,255,255,0.2);">Каталог фильмов</h2>
+    
+    <!-- Основная панель фильтров -->
+    <form method="get" action="/">
+        <div class="row g-2 align-items-center mb-2">
+            <div class="col-md-3">
+                <input type="text" name="search" class="form-control form-control-glass rounded-pill w-100" placeholder="Поиск по названию..." value="{{ search or '' }}">
+            </div>
+            <div class="col-md-3">
+                <select name="genre" class="form-select form-control-glass rounded-pill w-100">
+                    <option value="">Все жанры</option>
+                    <option value="Action" {% if genre=='Action' %}selected{% endif %}>Экшен / Боевик</option>
+                    <option value="Comedy" {% if genre=='Comedy' %}selected{% endif %}>Комедия</option>
+                    <option value="Drama" {% if genre=='Drama' %}selected{% endif %}>Драма</option>
+                    <option value="Sci-Fi" {% if genre=='Sci-Fi' %}selected{% endif %}>Фантастика</option>
+                    <option value="Horror" {% if genre=='Horror' %}selected{% endif %}>Ужасы</option>
+                    <option value="Romance" {% if genre=='Romance' %}selected{% endif %}>Романтика</option>
+                    <option value="Animation" {% if genre=='Animation' %}selected{% endif %}>Мультфильм</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="year" class="form-select form-control-glass rounded-pill w-100">
+                    <option value="">Все годы</option>
+                    <option value="2020s" {% if year=='2020s' %}selected{% endif %}>2020-е</option>
+                    <option value="2010s" {% if year=='2010s' %}selected{% endif %}>2010-е</option>
+                    <option value="2000s" {% if year=='2000s' %}selected{% endif %}>2000-е</option>
+                    <option value="1990s" {% if year=='1990s' %}selected{% endif %}>1990-е</option>
+                    <option value="old" {% if year=='old' %}selected{% endif %}>До 1990 года</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="sort" class="form-select form-control-glass rounded-pill w-100">
+                    <option value="popular" {% if sort=='popular' %}selected{% endif %}>🔥 Популярные</option>
+                    <option value="rating" {% if sort=='rating' %}selected{% endif %}>⭐️ По рейтингу</option>
+                    <option value="new" {% if sort=='new' %}selected{% endif %}>📅 Сначала новые</option>
+                </select>
+            </div>
+            <div class="col-md-1 d-flex gap-2">
+                <button class="btn btn-gradient rounded-pill w-100" type="submit" title="Искать"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+            <div class="col-md-1">
+                <button class="btn btn-outline-info rounded-pill w-100" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilters" title="Расширенный поиск">
+                    <i class="fa-solid fa-sliders"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Скрытая панель расширенных фильтров -->
+        <div class="collapse {% if actor or director or tag or min_rating %}show{% endif %} mt-2" id="advancedFilters">
+            <div class="glass-card p-3" style="border-left: 3px solid var(--accent-alt);">
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <label class="form-label small text-light opacity-75 mb-1 ps-2">Актер</label>
+                        <input type="text" name="actor" class="form-control form-control-glass rounded-pill" placeholder="Например: Johnny Depp" value="{{ actor or '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-light opacity-75 mb-1 ps-2">Режиссер</label>
+                        <input type="text" name="director" class="form-control form-control-glass rounded-pill" placeholder="Например: Nolan" value="{{ director or '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-light opacity-75 mb-1 ps-2">Тег (настроение/тема)</label>
+                        <input type="text" name="tag" class="form-control form-control-glass rounded-pill" placeholder="Например: sci-fi, mindfuck" value="{{ tag or '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-light opacity-75 mb-1 ps-2">Минимальный рейтинг</label>
+                        <select name="min_rating" class="form-select form-control-glass rounded-pill">
+                            <option value="">Любой</option>
+                            <option value="6" {% if min_rating == 6.0 %}selected{% endif %}>⭐️ От 6 и выше</option>
+                            <option value="7" {% if min_rating == 7.0 %}selected{% endif %}>⭐️ От 7 и выше</option>
+                            <option value="8" {% if min_rating == 8.0 %}selected{% endif %}>🔥 От 8 и выше</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- НОВОЕ: Единая, красивая плашка для ВСЕХ активных фильтров (как было у актеров) -->
+    {% if actor or director or tag %}
+    <div class="alert alert-info bg-transparent border-info text-info rounded-4 py-3 px-4 mt-3 mb-0 shadow-sm" style="backdrop-filter: blur(10px);">
+        <div class="d-flex align-items-center flex-wrap gap-3">
+            <span class="text-light fw-bold"><i class="fa-solid fa-filter me-2 text-info"></i>Результаты по фильтрам:</span>
+            
+            {% if actor %}
+                <span class="badge bg-info text-dark rounded-pill px-3 py-2 fs-6 shadow-sm"><i class="fa-solid fa-user-tie me-2"></i>Актер: {{ actor }}</span>
+            {% endif %}
+            
+            {% if director %}
+                <span class="badge bg-warning text-dark rounded-pill px-3 py-2 fs-6 shadow-sm"><i class="fa-solid fa-clapperboard me-2"></i>Режиссер: {{ director }}</span>
+            {% endif %}
+            
+            {% if tag %}
+                <span class="badge bg-primary text-light rounded-pill px-3 py-2 fs-6 shadow-sm"><i class="fa-solid fa-hashtag me-2"></i>Тег: {{ tag }}</span>
+            {% endif %}
+            
+            <a href="/" class="btn btn-sm btn-outline-danger rounded-pill ms-auto px-3"><i class="fa-solid fa-xmark me-1"></i>Сбросить</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="row g-4" id="moviesGrid">
+    {% if movies %}
+        {% include "movie_list_part.html" %}
+    {% else %}
+        <div class="col-12 text-center py-5">
+            <h4 class="text-light opacity-50"><i class="fa-solid fa-ghost mb-3 fs-1 d-block"></i>Фильмы не найдены</h4>
+            <p class="text-muted">Попробуйте изменить параметры расширенного поиска</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Анимация загрузки -->
+<div id="loader" class="text-center mt-5" style="display: none;">
+    <div class="spinner-border text-info" role="status"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let offset = 24;
+    let isLoading = false;
+    let urlParams = new URLSearchParams(window.location.search);
+    
+    window.addEventListener('scroll', async () => {
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 800 && !isLoading) {
+            isLoading = true;
+            document.getElementById('loader').style.display = 'block';
+            
+            urlParams.set('offset', offset);
+            try {
+                let response = await fetch(`/?${urlParams.toString()}`);
+                let html = await response.text();
+                
+                if(html.trim().length > 0) {
+                    document.getElementById('moviesGrid').insertAdjacentHTML('beforeend', html);
+                    offset += 24;
+                    isLoading = false;
+                } else {
+                    document.getElementById('loader').innerHTML = '<p class="text-light opacity-50">Больше фильмов нет</p>';
+                }
+            } catch(e) { console.error(e); }
+            if(isLoading) document.getElementById('loader').style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}

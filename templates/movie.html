@@ -1,0 +1,543 @@
+{% extends "base.html" %}
+{% block content %}
+<div id="movie-meta" data-id="{{ movie.movie_id }}" data-imdb="{{ movie.imdb_id }}" data-title="{{ movie.title }}" data-year="{{ movie.release_year }}" style="display: none;"></div>
+
+<style>
+    .rating-badge { background: #161822; border: 1px solid #2d3142; border-radius: 12px; padding: 12px 20px; min-width: 130px; text-align: center; display: flex; flex-direction: column; justify-content: center;}
+    .rating-label { color: #ffffff !important; font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block; }
+    .rating-value { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 1.5rem; }
+    
+    .val-kp { color: #ffc107; }
+    .val-tmdb { color: #3b82f6; }
+    .val-rt { color: #ef4444; }
+    .val-mc { color: #10b981; }
+
+    .rating-badge-local {
+        background: rgba(0, 242, 254, 0.08); 
+        border: 2px solid var(--accent); 
+        border-radius: 12px; 
+        padding: 12px 20px; 
+        min-width: 140px; 
+        text-align: center; 
+        box-shadow: 0 0 15px rgba(0, 242, 254, 0.2);
+        display: flex; flex-direction: column; justify-content: center;
+    }
+    .val-local { color: var(--accent); text-shadow: 0 0 10px rgba(0, 242, 254, 0.5); }
+
+    .nav-pills .nav-link { color: #fff; background: rgba(255,255,255,0.05); margin-right: 10px; border: 1px solid transparent; cursor: pointer; transition: 0.3s;}
+    .nav-pills .nav-link.active { background: #3b82f6 !important; border-color: #60a5fa; }
+    .nav-pills .nav-link:hover { background: rgba(255,255,255,0.1); }
+
+    .media-tabs {
+        background: rgba(0, 0, 0, 0.4);
+        border-radius: 50px;
+        padding: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+    }
+    .media-tabs .nav-item { flex: 1; }
+    .media-tabs .nav-link {
+        color: #94a3b8;
+        border-radius: 50px;
+        transition: all 0.3s ease;
+        font-weight: 600;
+        width: 100%;
+        margin: 0;
+        border: none;
+    }
+    .media-tabs .nav-link:hover { background: rgba(255,255,255,0.05); color: #fff; }
+    .media-tabs .nav-link.active {
+        background: var(--accent);
+        color: #000 !important;
+        box-shadow: 0 0 15px rgba(0, 242, 254, 0.5);
+    }
+    
+    .chart-container { position: relative; height: 180px; width: 100%; display: flex; justify-content: center; align-items: center; margin-top: 10px; }
+    .fact-row { border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 12px; }
+    .fact-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .fact-label { color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px;}
+    .fact-value { color: #fff; font-weight: 600; font-size: 1rem; }
+
+    .actor-link { transition: 0.2s ease; cursor: pointer; }
+    .actor-link:hover { color: #fff !important; text-shadow: 0 0 10px rgba(0, 242, 254, 0.6); text-decoration: underline !important; }
+    .movie-tag-link { transition: 0.2s; background: rgba(0, 242, 254, 0.1); border: 1px solid var(--accent); color: var(--accent) !important; text-decoration: none;}
+    .movie-tag-link:hover { background: var(--accent); color: #000 !important; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,242,254,0.3);}
+</style>
+
+<div class="row mb-5 mt-4">
+    <div class="col-md-3">
+        <img src="{{ movie.poster_url }}" class="img-fluid rounded-4 shadow-lg mb-4 w-100" style="border: 1px solid rgba(255,255,255,0.1);">
+        
+        <div class="glass-card p-3 mb-3 text-center">
+            <span class="text-light d-block small mb-1 opacity-75">СБОРЫ В США</span>
+            <h4 id="boxOfficeBox" class="mb-0 text-success" style="font-family: 'Inter', sans-serif; font-weight: 700; font-size: 1.8rem;">...</h4>
+        </div>
+
+        <div class="glass-card p-4 mb-3">
+            <h6 class="text-center small mb-4" style="color: #fff; font-weight: 800; letter-spacing: 1px;">КРАТКАЯ ИНФОРМАЦИЯ</h6>
+            <div class="fact-row"><span class="fact-label">Режиссер</span><span class="fact-value" id="directorBox">Загрузка...</span></div>
+            <div class="fact-row"><span class="fact-label">Хронометраж</span><span class="fact-value" id="runtimeBox">Загрузка...</span></div>
+            <div class="fact-row"><span class="fact-label">Страна</span><span class="fact-value" id="countryBox">Загрузка...</span></div>
+        </div>
+
+        <div class="glass-card p-4 mb-3" id="sentimentCard" style="display: none;">
+            <h6 class="text-center small mb-2" style="color: #fff; font-weight: 800; letter-spacing: 1px;">ТОНАЛЬНОСТЬ ОТЗЫВОВ</h6>
+            <div class="chart-container"><canvas id="sentimentChart"></canvas></div>
+        </div>
+    </div>
+    
+    <div class="col-md-9 ps-md-5">
+        <h1 class="text-white mb-2" style="font-family: 'Inter', sans-serif; font-weight: 500; font-size: 2.5rem;">{{ movie.title }}</h1>
+        <p class="fs-5 mb-4" style="color: #60a5fa;">{{ movie.genres.replace('|', ', ') }} • {{ movie.release_year }}</p>
+
+        <div class="d-flex flex-wrap gap-3 mb-4" id="ratingsRow">
+            <div class="rating-badge-local">
+                <span class="rating-label" style="color: var(--accent) !important;"><i class="fa-solid fa-play me-1"></i>КИНО ПУЛЬС</span>
+                <div class="rating-value val-local">
+                    {% if local_stats and local_stats.local_rating %}{{ local_stats.local_rating }}{% else %}-{% endif %}
+                </div>
+                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-top: 2px;">
+                    {% if local_stats and local_stats.local_votes %}{{ local_stats.local_votes }} оценок{% else %}0 оценок{% endif %}
+                </div>
+            </div>
+            <div class="rating-badge"><span class="rating-label">Кинопоиск</span><div class="rating-value val-kp" id="r-kp">-</div></div>
+            <div class="rating-badge"><span class="rating-label">TMDB</span><div class="rating-value val-tmdb" id="r-tmdb">-</div></div>
+            <div class="rating-badge"><span class="rating-label">Томаты</span><div class="rating-value val-rt" id="r-rt">-</div></div>
+            <div class="rating-badge"><span class="rating-label">Metacritic</span><div class="rating-value val-mc" id="r-mc">-</div></div>
+        </div>
+
+        {% if comparison_text %}
+        <div class="mb-5" style="background: rgba(42, 42, 74, 0.4); padding: 15px; border-radius: 8px; border-left: 4px solid var(--accent); backdrop-filter: blur(5px);">
+            <div style="font-size: 1.05rem;"><strong>Аналитика:</strong> {{ comparison_text }}</div>
+        </div>
+        {% endif %}
+
+        <div class="glass-card p-4 mb-4">
+            <h5 class="text-white fw-bold mb-3">Сюжет фильма</h5>
+            <p id="plotBox" class="fs-6 lh-lg text-light">Загрузка...</p>
+        </div>
+
+        {% if tags %}
+        <div class="glass-card p-4 mb-4">
+            <h5 class="text-white fw-bold mb-3">Теги</h5>
+            <div class="d-flex flex-wrap gap-2">
+                {% for t in tags %}
+                    <a href="/?tag={{ t.tag }}" class="badge movie-tag-link px-3 py-2 fw-normal" style="font-size: 0.9rem;">
+                        <i class="fa-solid fa-hashtag me-1"></i>{{ t.tag }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="glass-card p-4 mb-4" id="playerBlock">
+            
+            <ul class="nav media-tabs mb-4" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="trailer-tab" data-bs-toggle="tab" data-bs-target="#trailer-pane" type="button" role="tab">
+                        <i class="fa-solid fa-play me-2"></i>Смотреть трейлер
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="movie-tab" data-bs-toggle="tab" data-bs-target="#movie-pane" type="button" role="tab">
+                        <i class="fa-solid fa-film me-2"></i>Смотреть фильм
+                    </button>
+                </li>
+            </ul>
+            
+            <div class="tab-content">
+                <!-- Вкладка Трейлер -->
+                <div class="tab-pane fade show active" id="trailer-pane" role="tabpanel">
+                    <div id="trailerWrapper" class="ratio ratio-16x9 rounded overflow-hidden shadow-lg" style="border: 1px solid rgba(255,255,255,0.1); background: #000;">
+                        <iframe id="trailerFrame" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                    <div id="noTrailerMsg" class="text-center py-5" style="display: none; border: 1px dashed rgba(255,255,255,0.1); border-radius: 12px; background: rgba(0,0,0,0.2);">
+                        <i class="fa-solid fa-video-slash text-muted mb-2 fs-2 d-block"></i>
+                        <p class="text-light opacity-50 mb-0">Трейлер для этого фильма не найден в базе данных.</p>
+                    </div>
+                </div>
+
+                <!-- Вкладка Фильм (С выбором серверов!) -->
+                <div class="tab-pane fade" id="movie-pane" role="tabpanel">
+                    
+                    <!-- Кнопки выбора сервера -->
+                    <div class="d-flex justify-content-center flex-wrap gap-2 mb-3">
+                        <span class="text-light opacity-75 small align-self-center me-2"><i class="fa-solid fa-server me-1"></i>Зеркало:</span>
+                        <button class="btn btn-sm btn-outline-info active" onclick="changeServer('https://vidsrc.me/embed/movie?imdb={{ movie.imdb_id }}', this)">Сервер 1 (Vidsrc)</button>
+                        <button class="btn btn-sm btn-outline-info" onclick="changeServer('https://multiembed.mov/?video_id={{ movie.imdb_id }}&tmdb=1', this)">Сервер 2 (Multi)</button>
+                        <button class="btn btn-sm btn-outline-info" onclick="changeServer('https://autoembed.to/movie/imdb/{{ movie.imdb_id }}', this)">Сервер 3 (Auto)</button>
+                    </div>
+
+                    <div class="ratio ratio-16x9 rounded overflow-hidden shadow-lg" style="border: 1px solid rgba(255,255,255,0.1); background: #000;">
+                        <!-- По умолчанию загружаем первый сервер -->
+                        <iframe id="movieFrame" src="https://vidsrc.me/embed/movie?imdb={{ movie.imdb_id }}" frameborder="0" allowfullscreen></iframe>
+                    </div>
+                    <div class="text-center mt-3">
+                        <small class="text-light opacity-50"><i class="fa-solid fa-circle-info me-1 text-warning"></i>Если фильм не загружается или пишет ошибку, <b>выберите другой сервер</b> из списка выше или включите VPN.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="glass-card p-4 h-100">
+                    <h5 class="text-white fw-bold mb-3"><i class="fa-solid fa-chart-bar text-info me-2"></i>Финансовая аналитика</h5>
+                    <div class="chart-container" style="height: 140px; margin-top: 0;">
+                        <canvas id="financeChart"></canvas>
+                    </div>
+                    <p id="financeNoData" class="text-light opacity-50 small text-center mt-3" style="display:none;">Нет точных данных о бюджете</p>
+                </div>
+            </div>
+            
+            <div class="col-lg-6 mb-4">
+                <div class="glass-card p-4 h-100">
+                    <h5 class="text-white fw-bold mb-3"><i class="fa-solid fa-trophy text-warning me-2"></i>Досье</h5>
+                    <div class="mb-3">
+                        <span class="fact-label text-info">НАГРАДЫ</span>
+                        <span class="text-light fs-6" id="awardsBox">Загрузка...</span>
+                    </div>
+                    <div>
+                        <span class="fact-label text-info">В ГЛАВНЫХ РОЛЯХ</span>
+                        <div class="text-light fs-6 lh-lg" id="actorsBox">Загрузка...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4" id="regionalBoxOfficeBlock" style="display: none;">
+            <div class="col-12">
+                <div class="glass-card p-4">
+                    <h5 class="text-white fw-bold mb-3"><i class="fa-solid fa-earth-americas text-primary me-2"></i>География сборов</h5>
+                    <div class="chart-container" style="height: 220px; margin-top: 15px;">
+                        <canvas id="regionalBoxOfficeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="row mt-2">
+    <div class="col-md-7">
+        <div class="d-flex align-items-center mb-4">
+            <h3 class="fw-bold text-white me-4 mb-0">Рецензии</h3>
+            <ul class="nav nav-pills" id="revTabs"></ul>
+        </div>
+        <div id="reviewsContent">
+            <div class="text-muted text-center py-4"><div class="spinner-border text-info" role="status"></div></div>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <h3 class="fw-bold text-white mb-4">Ваше мнение</h3>
+        {% if user %}
+        <div class="glass-card p-3 mb-4">
+            <select id="userRating" class="form-select form-control-glass mb-3">
+                <option value="">Оценка (по желанию)</option>
+                <option value="10">10 - Шедевр</option>
+                <option value="9">9 - Отлично</option>
+                <option value="8">8 - Очень хорошо</option>
+                <option value="7">7 - Хорошо</option>
+                <option value="6">6 - Нормально</option>
+                <option value="5">5 - Средне</option>
+                <option value="4">4 - Ниже среднего</option>
+                <option value="3">3 - Плохо</option>
+                <option value="2">2 - Ужасно</option>
+                <option value="1">1 - Отвратительно</option>
+            </select>
+            <textarea id="commentText" class="form-control form-control-glass mb-3" rows="3" placeholder="Написать комментарий..."></textarea>
+            <button class="btn btn-gradient w-100 rounded-pill" onclick="sendComment()">Опубликовать</button>
+        </div>
+        {% else %}
+        <div class="glass-card p-4 mb-4 text-center">
+            <p class="text-light mb-2">Для того чтобы оставить свое мнение, необходимо войти в систему.</p>
+            <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="btn btn-sm btn-outline-info rounded-pill px-4 mt-2">Войти / Зарегистрироваться</button>
+        </div>
+        {% endif %}
+        
+        <div id="localComments">
+            {% for c in comments %}
+            <div class="glass-card p-3 mb-2">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <b class="text-info"><i class="fa-solid fa-user me-2"></i>{{ c.username }}</b>
+                        {% if c.rating %}
+                            <span class="ms-2" style="color: #fbbf24; font-size: 0.9rem; font-weight: bold;">
+                                <i class="fa-solid fa-star"></i> {{ c.rating }}/10
+                            </span>
+                        {% endif %}
+                    </div>
+                    <span style="color: #cbd5e1; font-size: 0.85rem;">{{ c.created_at.strftime('%d.%m.%Y') }}</span>
+                </div>
+                <div class="text-light" style="font-size: 0.95rem;">{{ c.text }}</div>
+            </div>
+            {% else %}
+            <div class="glass-card p-4 text-center">
+                <p class="text-light opacity-50 mb-0">Будьте первым, кто оставит здесь отзыв!</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+let allReviews = [];
+let currentSource = 'Все';
+let visibleCount = 3; 
+
+// Функция переключения серверов плеера
+function changeServer(url, btn) {
+    document.getElementById('movieFrame').src = url;
+    let btns = btn.parentElement.querySelectorAll('button');
+    btns.forEach(b => {
+        b.classList.remove('active');
+    });
+    btn.classList.add('active');
+}
+
+function renderTabs() {
+    const sources = ['Все', 'Кинопоиск', 'TMDB', 'Rotten Tomatoes', 'Metacritic'];
+    const tabsContainer = document.getElementById('revTabs');
+    let html = '';
+    sources.forEach(src => {
+        let activeClass = (src === currentSource) ? 'active' : '';
+        html += `<li class="nav-item"><button class="nav-link ${activeClass}" onclick="showSource('${src}')">${src}</button></li>`;
+    });
+    tabsContainer.innerHTML = html;
+}
+
+function showSource(source) {
+    currentSource = source;
+    visibleCount = 3; 
+    document.querySelectorAll('#revTabs .nav-link').forEach(btn => {
+        btn.classList.toggle('active', btn.innerText === source);
+    });
+    renderReviews();
+}
+
+function renderReviews() {
+    let filtered = currentSource === 'Все' ? allReviews : allReviews.filter(r => r.source === currentSource);
+    let html = '';
+    
+    if(filtered.length === 0) {
+        document.getElementById('reviewsContent').innerHTML = `<div class="p-4 text-center text-light opacity-50 glass-card">Здесь пока нет текстовых рецензий.</div>`;
+        return;
+    }
+
+    let toShow = filtered.slice(0, visibleCount);
+    toShow.forEach(r => {
+        let typeColor = r.type === 'POSITIVE' ? '#10b981' : (r.type === 'NEGATIVE' ? '#ef4444' : '#3b82f6');
+        let ratingHtml = '';
+        if (r.author_rating) {
+            ratingHtml = `<span class="badge bg-dark ms-2 text-warning" style="border: 1px solid var(--glass-border);"><i class="fa-solid fa-star text-warning me-1"></i>${r.author_rating}/10</span>`;
+        }
+        html += `
+        <div class="glass-card p-4 mb-3" style="border-left: 5px solid ${typeColor}">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex align-items-center">
+                    <h6 class="fw-bold text-white mb-0"><i class="fa-solid fa-feather-pointed me-2" style="color: ${typeColor}"></i>${r.author}</h6>
+                    ${ratingHtml}
+                </div>
+                <span class="badge bg-dark" style="border: 1px solid var(--glass-border);">${r.source}</span>
+            </div>
+            <div class="text-light small lh-base" style="opacity: 0.9;">${r.text}</div>
+        </div>`;
+    });
+
+    if (filtered.length > visibleCount) {
+        html += `<div class="text-center mt-4 mb-5"><button class="btn btn-outline-info rounded-pill px-4" onclick="loadMoreReviews()">Показать еще рецензии <i class="fa-solid fa-angle-down ms-1"></i></button></div>`;
+    }
+    document.getElementById('reviewsContent').innerHTML = html;
+}
+
+function loadMoreReviews() {
+    visibleCount += 5; 
+    renderReviews();
+}
+
+function buildSentimentChart(reviews) {
+    if(!reviews || reviews.length === 0) return;
+    let pos = 0, neg = 0, neu = 0;
+    reviews.forEach(r => {
+        if(r.type === 'POSITIVE') pos++;
+        else if(r.type === 'NEGATIVE') neg++;
+        else neu++;
+    });
+
+    if(pos > 0 || neg > 0 || neu > 0) {
+        document.getElementById('sentimentCard').style.display = 'block';
+        const ctx = document.getElementById('sentimentChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Позитивные', 'Нейтральные', 'Негативные'],
+                datasets: [{ data: [pos, neu, neg], backgroundColor: ['#10b981', '#3b82f6', '#ef4444'], borderWidth: 0, hoverOffset: 4 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, cutout: '75%', 
+                plugins: { legend: { position: 'bottom', labels: { color: '#e2e8f0', padding: 15, font: { family: 'Inter', size: 11 } } } }
+            }
+        });
+    }
+}
+
+function buildFinanceChart(budget, revenue) {
+    if (!budget || budget === 0) {
+        document.getElementById('financeChart').style.display = 'none';
+        document.getElementById('financeNoData').style.display = 'block';
+        return;
+    }
+
+    const ctx = document.getElementById('financeChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar', 
+        data: {
+            labels: ['Бюджет', 'Мировые Сборы'],
+            datasets: [{ data: [budget, revenue], backgroundColor: ['#ef4444', '#10b981'], borderRadius: 6, barThickness: 25 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, indexAxis: 'y', 
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: function(context) { return '$' + context.raw.toLocaleString('en-US'); } } }
+            },
+            scales: {
+                x: { display: false, grid: {display: false} }, 
+                y: { ticks: { color: '#e2e8f0', font: { family: 'Inter', weight: 'bold', size: 12 } }, grid: {display: false, color: 'rgba(255,255,255,0.1)'} }
+            }
+        }
+    });
+}
+
+function buildRegionalBoxOfficeChart(boData) {
+    if (!boData || (boData.rus === 0 && boData.usa === 0 && boData.world === 0)) {
+        return; 
+    }
+
+    document.getElementById('regionalBoxOfficeBlock').style.display = 'flex';
+
+    let restOfWorld = boData.world - boData.usa - boData.rus;
+    if (restOfWorld < 0) restOfWorld = 0; 
+
+    let labels = [];
+    let values = [];
+    let bgColors = [];
+
+    if (boData.usa > 0) { labels.push('США'); values.push(boData.usa); bgColors.push('#3b82f6'); }
+    if (boData.rus > 0) { labels.push('Россия'); values.push(boData.rus); bgColors.push('#ef4444'); }
+    if (restOfWorld > 0) { labels.push('Остальные страны'); values.push(restOfWorld); bgColors.push('#10b981'); }
+    
+    if (boData.world > 0 && boData.usa === 0 && boData.rus === 0) {
+        labels = ['Весь мир']; values = [boData.world]; bgColors = ['#10b981'];
+    }
+
+    const ctx = document.getElementById('regionalBoxOfficeChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar', 
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Сборы ($)',
+                data: values,
+                backgroundColor: bgColors,
+                borderRadius: 8,
+                barThickness: 50 
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: function(context) { return '$' + context.raw.toLocaleString('en-US'); } } }
+            },
+            scales: {
+                y: {
+                    ticks: { color: '#94a3b8', font: { family: 'Inter' }, callback: function(value) { return '$' + (value / 1000000) + 'M'; } },
+                    grid: { color: 'rgba(255,255,255,0.05)' }
+                },
+                x: { 
+                    ticks: { color: '#e2e8f0', font: { family: 'Inter', weight: 'bold', size: 13 } }, 
+                    grid: { display: false } 
+                }
+            }
+        }
+    });
+}
+
+async function sendComment() {
+    let text = document.getElementById('commentText').value;
+    let rating = document.getElementById('userRating').value;
+    
+    if(!text) return;
+    const meta = document.getElementById('movie-meta').dataset;
+    
+    await fetch('/api/comments', { 
+        method: 'POST', 
+        headers: {'Content-Type': 'application/json'}, 
+        body: JSON.stringify({ movie_id: parseInt(meta.id), text: text, rating: rating ? parseInt(rating) : null }) 
+    });
+    location.reload();
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+    const meta = document.getElementById('movie-meta').dataset;
+
+    try {
+        const res = await fetch(`/api/parse/${meta.imdb}?title=${encodeURIComponent(meta.title)}&year=${meta.year}`);
+        const data = await res.json();
+
+        if(data.ratings.kp) document.getElementById('r-kp').innerText = data.ratings.kp;
+        if(data.ratings.tmdb) document.getElementById('r-tmdb').innerText = data.ratings.tmdb;
+        if(data.ratings.rt) document.getElementById('r-rt').innerText = data.ratings.rt;
+        if(data.ratings.mc) document.getElementById('r-mc').innerText = data.ratings.mc;
+
+        document.getElementById('plotBox').innerText = data.plot;
+        document.getElementById('boxOfficeBox').innerText = data.box_office || 'N/A';
+        
+        document.getElementById('directorBox').innerText = data.director || 'Неизвестно';
+        document.getElementById('runtimeBox').innerText = data.runtime || 'Неизвестно';
+        document.getElementById('countryBox').innerText = data.country || 'Неизвестно';
+        document.getElementById('awardsBox').innerText = data.awards || 'Нет информации';
+
+        // Логика трейлера
+        if (data.trailer_url) {
+            document.getElementById('trailerWrapper').style.display = 'block';
+            document.getElementById('noTrailerMsg').style.display = 'none';
+            document.getElementById('trailerFrame').src = data.trailer_url;
+        } else {
+            document.getElementById('trailerWrapper').style.display = 'none';
+            document.getElementById('noTrailerMsg').style.display = 'block';
+        }
+
+        if (data.actors && data.actors !== 'N/A') {
+            let actorsHtml = data.actors.split(',').map(actor => {
+                let cleanActor = actor.trim();
+                return `<a href="/?actor=${encodeURIComponent(cleanActor)}" class="text-info text-decoration-none actor-link d-inline-block border-bottom border-info border-opacity-25 pb-1 me-2 mb-2"><i class="fa-solid fa-user-tie me-1"></i>${cleanActor}</a>`;
+            }).join('');
+            document.getElementById('actorsBox').innerHTML = actorsHtml;
+        } else {
+            document.getElementById('actorsBox').innerText = 'Нет информации';
+        }
+
+        buildFinanceChart(data.budget, data.revenue);
+        buildRegionalBoxOfficeChart(data.box_office_details);
+
+        allReviews = data.reviews || [];
+        buildSentimentChart(allReviews);
+
+        renderTabs();
+        showSource('Все');
+
+    } catch (error) {
+        console.error("Ошибка парсинга:", error);
+        document.getElementById('plotBox').innerText = "Не удалось загрузить дополнительную информацию.";
+    }
+});
+</script>
+{% endblock %}
