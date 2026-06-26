@@ -4,6 +4,14 @@
 
 Веб-приложение для поиска, фильтрации и анализа фильмов на основе **32 миллионов пользовательских оценок** (MovieLens 32M). Проект объединяет работу с реляционной БД, ETL-пайплайн, внешние API и полноценный UI с авторизацией и отзывами.
 
+<div align="center">
+  <img width="1568" height="1000" alt="image" src="https://github.com/user-attachments/assets/0d2bacd6-eba4-4263-9a7a-048bbf83b9ec" />
+  <img width="1253" height="206" alt="image" src="https://github.com/user-attachments/assets/b521c5e0-d2fe-47c6-be8a-1bb903d7ca31" />
+  <img width="1263" height="686" alt="image" src="https://github.com/user-attachments/assets/3973142b-9e52-489d-a966-0497214ca9e3" />
+  <img width="1256" height="684" alt="image" src="https://github.com/user-attachments/assets/cec4c34a-0f4f-40c5-9ec9-afa0bff35b6a" />
+  <img width="1147" height="842" alt="image" src="https://github.com/user-attachments/assets/c371fe1b-1cb1-48ee-bcb7-ef24e8ff4955" />
+</div>
+
 ---
 
 ## ✨ Возможности
