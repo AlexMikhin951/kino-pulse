@@ -1,0 +1,5 @@
+# Jinja2-шаблоны — часть Python-приложения, не отдельный HTML-проект
+templates/** linguist-vendored
+
+# Скрипты и конфиг явно считаем Python
+*.py linguist-language=Python
